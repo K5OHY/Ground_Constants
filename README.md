@@ -111,7 +111,7 @@ Download `index.html` and open it in a web browser. There is nothing to install.
 | File | What it is |
 |---|---|
 | `index.html` | The whole app: page, code and the embedded US coastline data |
-| `tools/build_coastline.py` | Rebuilds the embedded coastline data from the OpenStreetMap source |
+| `build_coastline.py` | Rebuilds the embedded coastline data from the OpenStreetMap source |
 | `LICENSE` | MIT license for the code, plus the terms for the data |
 
 ## Data sources and thanks
