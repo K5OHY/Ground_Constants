@@ -23,7 +23,7 @@ Click the map and the page looks up the soil at that point in the USDA soil surv
 ## Quick start
 
 1. Open [the page](https://k5ohy.github.io/Ground_Constants/).
-2. Click your operating spot on the map, or type a place name or `lat, lon` and click **Find**.
+2. Click your operating spot on the map, type a place name or `lat, lon` and click **Find**, or click **Use my location** and allow location access in your browser.
 3. Pick the **ground condition** (Bone dry to Saturated) and the **band**.
 4. Read σ and εr from the readout, and click **Copy** to paste them into MMANA-GAL.
 5. Scroll down to **What this means for HF antennas** for the vertical vs. dipole comparison.
@@ -38,6 +38,7 @@ The FCC M3 ground conductivity map was made from AM broadcast measurements, aver
 ### Map
 
 - **Click anywhere in the US** to look up the soil there. Search works with place names or coordinates.
+- **Use my location** centers the map on your current browser location and looks up the soil there. Use the panel button or the target icon beneath the map's +/− zoom buttons. Location access is requested only when you click either control.
 - **Map styles:** Light, Dark, Satellite, Street, Topographic, USGS Topo and Shaded relief. No API keys are needed.
 - **Soil boundaries** overlay (zoom in close) shows the USDA soil map units.
 - **Nearby data** used for an estimate shows as blue dots, and the nearest salt water as a dashed line.
@@ -101,10 +102,13 @@ The full details are in **How the estimate works** at the bottom of the page.
 - **Soil boundaries don't show.** Zoom in close (street level). If the panel says the USDA map server isn't responding, the overlay is unavailable for now; lookups still work.
 - **A spot shows "Low coverage".** Most of that map unit has no soil data (often urban land). Try a spot nearby, or treat the result as rough.
 - **Place search finds nothing.** Try a town or park name, or enter coordinates as `lat, lon`.
+- **Current location is unavailable.** Allow location access in your browser and device settings, then try again. You can always click the map or search instead. Soil survey coverage is limited to the US.
 
 ## Run it locally
 
 Download `index.html` and open it in a web browser. There is nothing to install. It needs an internet connection for the soil data and map tiles.
+
+Current location requires a secure browser context. If it is unavailable when opening the file directly, serve this folder on localhost (for example, `python3 -m http.server`) and open `http://localhost:8000`.
 
 ## Files
 
