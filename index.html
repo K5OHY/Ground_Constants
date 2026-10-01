@@ -46,6 +46,7 @@ input[type=text],select{font:inherit;color:var(--fg);background:var(--bg);border
 input[type=text]{flex:1}
 button{font:600 13px var(--body);color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 11px;cursor:pointer}
 button:hover{border-color:var(--accent)}
+button:disabled{opacity:.6;cursor:wait}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
 .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex-wrap:wrap}
@@ -78,6 +79,10 @@ summary{cursor:pointer;font-weight:600}
 .credits{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
 .credits a{color:var(--accent)}
 .leaflet-container{font:inherit}
+.leaflet-bar .map-locate{display:flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;border:0;border-radius:0 0 2px 2px;background:#fff;color:#000}
+.leaflet-touch .leaflet-bar .map-locate{width:30px;height:30px}
+.leaflet-bar .map-locate:hover{background:#f4f4f4}
+.leaflet-bar .map-locate:disabled{background:var(--accent-soft);color:var(--accent)}
 .verdict{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font:700 16px/1.3 var(--display);margin:0 0 10px;text-wrap:balance}
 .advice{margin:10px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:8px;max-width:62ch}
 .advice li{padding-left:2px}
@@ -94,6 +99,7 @@ summary{cursor:pointer;font-weight:600}
 .fields input[type=number]{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:7.5em}
 .chk2{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
 .hint2{font-size:12px;color:var(--muted);margin:6px 0 0}
+.hint2.err{color:var(--bad)}
 .tbl-title{font:600 13px var(--body);margin:0 0 4px}
 .mapbox{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.18);min-width:190px}
 .mapbox label{font:600 10.5px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -118,6 +124,8 @@ summary{cursor:pointer;font-weight:600}
         <input type="text" id="q" placeholder="Place name or lat, lon" aria-label="Search place or coordinates">
         <button id="go">Find</button>
       </div>
+      <button id="locate" style="margin-top:6px">Use my location</button>
+      <p class="hint2" id="locationStatus" role="status" aria-atomic="true" hidden></p>
     </div>
 
     <div>
@@ -143,7 +151,7 @@ summary{cursor:pointer;font-weight:600}
       <p class="hint2" id="customHint" hidden></p>
     </div>
 
-    <div id="status" class="status">Click the map or search for a place to estimate the ground at that spot.</div>
+    <div id="status" class="status">Click the map, search for a place, or use your current location to estimate the ground at that spot.</div>
 
     <div id="result" hidden>
       <div class="readout">
@@ -973,6 +981,7 @@ async function nearbySamples(lat, lon, id){
 }
 
 async function lookup(lat, lon, label){
+  cancelLocation();
   const id = ++lookupId;
   if(marker) marker.setLatLng([lat,lon]); else marker = L.marker([lat,lon]).addTo(map);
   sampleDots.clearLayers();
@@ -1022,6 +1031,65 @@ async function lookup(lat, lon, label){
 }
 map.on("click", e=>lookup(e.latlng.lat, e.latlng.lng));
 
+let locationId = 0;
+function locationLoading(loading){
+  $("locate").disabled = loading; $("locate").textContent = loading ? "Locating…" : "Use my location";
+  mapLocate.disabled = loading;
+  mapLocate.setAttribute("aria-busy", String(loading));
+  mapLocate.title = loading ? "Getting your location…" : "Use my location";
+}
+function cancelLocation(){
+  locationId++; // Ignore a late location response after another spot is selected.
+  locationLoading(false);
+  $("locationStatus").hidden = true; $("locationStatus").textContent = "";
+}
+function locationStatus(msg, err){
+  const s = $("locationStatus");
+  s.textContent = msg; s.hidden = false; s.className = "hint2"+(err?" err":"");
+}
+function locate(){
+  if($("locate").disabled) return;
+  cancelLocation();
+  if(!window.isSecureContext){
+    locationStatus("Current location needs a secure connection. Open the HTTPS version of this page, or search for a place.", true); return;
+  }
+  if(!navigator.geolocation){
+    locationStatus("Your browser does not support current location. Search for a place or enter coordinates instead.", true); return;
+  }
+  const id = locationId;
+  locationLoading(true);
+  locationStatus("Getting your location… Allow access if your browser asks.");
+  const fail = msg=>{
+    if(id !== locationId) return;
+    cancelLocation(); locationStatus(msg, true);
+  };
+  try{
+    navigator.geolocation.getCurrentPosition(position=>{
+      if(id !== locationId) return;
+      const {latitude:lat, longitude:lon} = position.coords;
+      $("q").value = `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+      map.setView([lat,lon],13); lookup(lat,lon);
+    }, error=>{
+      const messages = {
+        1:"Location access was denied. Allow access in your browser or device settings, then try again, or search for a place.",
+        2:"Your location is unavailable. Check your device's location settings, or search for a place.",
+        3:"Finding your location took too long. Try again, or search for a place.",
+      };
+      fail(messages[error.code] || "Could not get your location. Try again, or search for a place.");
+    }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+  }catch(e){ fail("Could not get your location. Try again, or search for a place."); }
+}
+$("locate").onclick = locate;
+const mapLocate = document.createElement("button");
+mapLocate.id = "mapLocate"; mapLocate.type = "button"; mapLocate.className = "map-locate";
+mapLocate.title = "Use my location";
+mapLocate.setAttribute("aria-label", "Use my location");
+mapLocate.setAttribute("aria-describedby", "locationStatus");
+mapLocate.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>';
+L.DomEvent.disableClickPropagation(mapLocate);
+mapLocate.onclick = locate;
+map.zoomControl.getContainer().appendChild(mapLocate);
+
 async function geocode(q){
   try{
     const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&countryCode=USA&SingleLine="+encodeURIComponent(q));
@@ -1034,20 +1102,24 @@ async function geocode(q){
 }
 async function search(){
   const q = $("q").value.trim(); if(!q) return;
+  cancelLocation();
+  const id = locationId;
   const m = q.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
   if(m){ const lat=+m[1], lon=+m[2]; map.setView([lat,lon],13); lookup(lat,lon); return; }
   setStatus("Searching for "+q+"…");
   try{
     const g = await geocode(q);
+    if(id !== locationId) return;
     if(!g){ setStatus("No place found for “"+q+"”. Try a town or park name, or lat, lon.", true); return; }
     map.setView([g.lat,g.lon],13); lookup(g.lat,g.lon,g.name);
-  }catch(e){ setStatus("Place search is unavailable. Enter coordinates as lat, lon instead.", true); }
+  }catch(e){ if(id === locationId) setStatus("Place search is unavailable. Enter coordinates as lat, lon instead.", true); }
 }
 $("go").onclick = search;
 $("q").addEventListener("keydown", e=>{ if(e.key==="Enter") search(); });
 
 for(const t of Object.keys(TEX)){ const o=document.createElement("option"); o.textContent=t; $("mTex").appendChild(o); }
 $("mGo").onclick = ()=>{
+  cancelLocation();
   lookupId++;                       // cancel any lookup still running
   sampleDots.clearLayers(); if(marker){ map.removeLayer(marker); marker = null; }
   state.waterType = "auto";
