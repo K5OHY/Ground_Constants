@@ -24,9 +24,11 @@ SOFTWARE.
 
 This license covers the code. The data the page uses has its own terms:
 
-- Coastline data embedded in index.html: © OpenStreetMap contributors, available
+- Coastline data embedded in index.html and in coast/: © OpenStreetMap contributors, available
   under the Open Database License (ODbL) 1.0, https://opendatacommons.org/licenses/odbl/
   Derived from the geo-maps project (https://github.com/simonepri/geo-maps).
 - Soil data (fetched live): USDA NRCS Soil Data Access (SSURGO), US public domain.
+- Global soil data (fetched live): SoilGrids © ISRIC – World Soil Information,
+  Creative Commons Attribution 4.0 (CC BY 4.0), https://soilgrids.org
 - Map tiles (fetched live): Esri and USGS, under their own terms of use.
 - Leaflet (loaded from a CDN): BSD 2-Clause License.

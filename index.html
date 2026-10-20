@@ -100,6 +100,7 @@ summary{cursor:pointer;font-weight:600}
 .chk2{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
 .hint2{font-size:12px;color:var(--muted);margin:6px 0 0}
 .hint2.err{color:var(--bad)}
+.hint2.warn-text{color:var(--warn);font-weight:600}
 .tbl-title{font:600 13px var(--body);margin:0 0 4px}
 .mapbox{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.18);min-width:190px}
 .mapbox label{font:600 10.5px var(--body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
@@ -115,7 +116,7 @@ summary{cursor:pointer;font-weight:600}
   <aside class="panel">
     <div>
       <h1>Ground Constants Estimator</h1>
-      <p class="sub">Click anywhere in the US to estimate HF ground conductivity and dielectric constant from USDA soil survey data.</p>
+      <p class="sub">Click anywhere to estimate HF ground conductivity and dielectric constant from soil data: the USDA soil survey in the US, SoilGrids global data elsewhere.</p>
     </div>
 
     <div>
@@ -151,7 +152,7 @@ summary{cursor:pointer;font-weight:600}
       <p class="hint2" id="customHint" hidden></p>
     </div>
 
-    <div id="status" class="status">Click the map, search for a place, or use your current location to estimate the ground at that spot.</div>
+    <div id="status" class="status">Click the map anywhere in the world, search for a place, or use your current location to estimate the ground at that spot.</div>
 
     <div id="result" hidden>
       <div class="readout">
@@ -178,8 +179,9 @@ summary{cursor:pointer;font-weight:600}
     <section id="advice" hidden>
       <p class="label">What this means for HF antennas</p>
       <div class="verdict"><span class="pill" id="vPill"></span><span id="vText"></span></div>
+      <p class="hint2" id="vRobust" hidden style="margin:-4px 0 10px"></p>
       <div class="seg" id="dirSeg" hidden style="margin-bottom:8px"></div>
-      <p class="tbl-title">Flat-ground comparison, gain in dBi</p>
+      <p class="tbl-title">Illustrative flat-ground comparison, gain in dBi</p>
       <div class="scroll"><table class="gain" id="gainTbl"></table></div>
       <ul class="advice" id="adviceList"></ul>
     </section>
@@ -216,22 +218,23 @@ summary{cursor:pointer;font-weight:600}
     <details>
       <summary>How the estimate works</summary>
       <div class="note">
-        <p><b>Soil data.</b> The clicked point is sent to USDA NRCS Soil Data Access (SSURGO). It returns the mapped soil unit, its component soils and their share of the unit, and each soil's layers down to about 2 m: sand and clay percentages, bulk density, water held at field capacity and at wilting point, saturation-extract salinity (EC) and cation exchange capacity (CEC). Missing values are filled with defaults, and the data line under the readout lists which ones. A layer counts as rock only when the survey says so (bedrock, cemented or indurated layers). Organic layers (muck, peat) get organic-soil values. A layer with no texture at all is treated as loam and flagged.</p>
+        <p><b>Two soil sources.</b> In the US the page uses the USDA soil survey, mapped in the field at about field scale. Outside the US, where USDA has no survey data, or when the USDA service is down, it uses SoilGrids from ISRIC: a worldwide grid of about 250 m predicted by computer from soil samples, satellite data, climate and terrain. SoilGrids gives sand, clay, bulk density, organic carbon, CEC and water held at field capacity and wilting point for six depths down to 2 m, but no salinity, so non-saline soil is assumed. The page reads SoilGrids from ISRIC's map server as small cut-outs around the spot (36 map layers per lookup, which takes a few seconds). Where SoilGrids has no value, as in towns, it averages the soil within about 1 km, or 5 km if needed. The data line under the readout always names the source. Recent lookups are remembered in your browser.</p>
+        <p><b>USDA soil data.</b> The clicked point is sent to USDA NRCS Soil Data Access (SSURGO). It returns the mapped soil unit, its component soils and their share of the unit, and each soil's layers down to about 2 m: sand and clay percentages, bulk density, water held at field capacity and at wilting point, saturation-extract salinity (EC) and cation exchange capacity (CEC). Missing values are filled with defaults, and the data line under the readout lists which ones. A layer counts as rock only when the survey says so (bedrock, cemented or indurated layers). Organic layers (muck, peat) get organic-soil values. A layer with no texture at all is treated as loam and flagged.</p>
         <p><b>No data at a spot.</b> Urban land, gravel pits and a few unsurveyed areas have no soil data. The data line shows how much of the map unit has usable data. When none does, the page checks rings of 8 points at 0.3, 0.9, 2.5, 6, 16 and 37 miles, stops once it finds enough real soil, and averages those points weighted by 1/distance² (conductivity on a log scale).</p>
         <p><b>Water.</b> Map units of water are treated as salt water when the coastline puts the spot on the sea side, or when the name says ocean, bay or tidal; otherwise fresh water (5 mS/m, εr 80). Buttons under the readout let you correct it.</p>
-        <p><b>Salt water nearby.</b> The page includes the OpenStreetMap coastline for the US (accurate to about 100 m; the Great Lakes and inland salt lakes are not included). After each lookup it finds the nearest salt water and casts a line every 5° out to 37 miles. For each antenna and angle it estimates the stretch of ground where the signal reflects (the first Fresnel zone along that line) and blends salt water into the reflection for the share of that stretch lying over the sea. This is a simplified model. The direction buttons compare the best direction across the water with directions over land. The σ and εr readout is always the soil under the antenna.</p>
+        <p><b>Salt water nearby.</b> The page uses the OpenStreetMap coastline, accurate to about 100 m, loaded in tiles for the area around the clicked spot. Lakes, including the Great Lakes and inland salt lakes, are not part of it. Opened as a file without a web server, the page can only use its built-in US copy. Near the 180° meridian (Fiji, the western Aleutians) the coastline across the line is not used. After each lookup it finds the nearest salt water and casts a line every 5° out to 37 miles. For each antenna and angle it estimates the stretch of ground where the signal reflects (the first Fresnel zone along that line) and blends salt water into the reflection for the share of that stretch lying over the sea. This is a simplified model. The direction buttons compare the best direction across the water with directions over land. The σ and εr readout is always the soil under the antenna.</p>
         <p><b>Moisture.</b> Bone dry is 40% of the wilting-point water content, Dry is the wilting point, Moist is halfway to field capacity, Wet is field capacity (a soaked soil after it drains), Saturated is 90% of the pore space filled. The same condition is applied to every layer.</p>
         <p><b>Dielectric constant.</b> CRIM mixing of mineral grains (εr 4.7), water (εr 80) and air, using porosity from bulk density. It gives values similar to the Topp equation.</p>
         <p><b>Conductivity.</b> An Archie-type model: pore-water conductivity (from the lab EC, concentrated as the soil dries) times a porosity and water-content factor, plus a surface-conduction term from clay (CEC). Non-saline soils get a floor of 0.25 dS/m for pore water.</p>
-        <p><b>Skin depth and band.</b> The skin depth is where the radio field has faded to about 37% of its surface strength. It is not a cutoff; deeper soil still contributes, less and less. Layers are weighted by how much power reaches them, and the deepest mapped layer is assumed to continue downward. Bedrock and cemented layers are treated as limestone or caliche (about 1.5 mS/m, εr 7).</p>
+        <p><b>Skin depth and band.</b> The skin depth is where the radio field has faded to about 37% of its surface strength. It is not a cutoff; deeper soil still contributes, less and less. When more than 40% of the weighting comes from below the surveyed depth (about 2 m), the data line warns that the assumed deep ground dominates the answer. Layers are weighted by how much power reaches them, and the deepest mapped layer is assumed to continue downward. Bedrock and cemented layers are treated as limestone or caliche (about 1.5 mS/m, εr 7).</p>
         <p><b>Frequency.</b> In this model each layer's σ and εr do not change with frequency. Changing band only changes the depth weighting and the reflection math, so a uniform soil shows the same σ and εr on every band. Real soils do vary somewhat with frequency (see N6LF's measurements at antennasbyn6lf.com); that is not modeled.</p>
-        <p><b>Antenna summary.</b> The gain table assumes flat, open ground. It combines each antenna's free-space pattern (¼λ vertical 5.15 dBi over perfect ground, ½λ dipole 2.15 dBi, dipoles broadside) with the Fresnel reflection off ground with these constants, at 5°, 10° and 20°. The vertical row assumes enough radials that loss near the antenna is small; it covers the far-field reflection only. Hills, slopes, buildings and trees are not included.</p>
+        <p><b>Antenna summary.</b> The gain table assumes flat, open ground. It combines each antenna's free-space pattern (¼λ vertical 5.15 dBi over perfect ground, ½λ dipole 2.15 dBi, dipoles broadside) with the Fresnel reflection off ground with these constants, at 5°, 10° and 20°. For dipoles it also corrects for how the radiation resistance changes with height (image theory, using the mutual impedance between the dipole and its reflection), which matters most below ¼λ. The line under the verdict says whether the verdict holds from bone dry to saturated ground. The figures are illustrative: the page does not compute antenna currents, feedpoint impedance, radial losses or terrain the way MMANA-GAL or NEC does. The vertical row assumes enough radials that loss near the antenna is small; it covers the far-field reflection only. Hills, slopes, buildings and trees are not included.</p>
         <p><b>Accuracy.</b> These estimates have not been checked against HF ground measurements. Treat them as a starting point for modeling, not as measured values. For real numbers, measure the site with a VNA ground probe (N6LF's method) and enter them under "Use my own ground values".</p>
         <p>Reference values: Poor (dry sand) about 1 mS/m, εr 5. Average about 5 mS/m, εr 13. Good (moist farmland) about 30 mS/m, εr 20. Salt water 5000 mS/m, εr 81.</p>
       </div>
     </details>
 
-    <p class="credits">By K5OHY. Soil data: USDA NRCS Soil Data Access (SSURGO). Coastline: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ODbL, via geo-maps. Map tiles: Esri, USGS. Estimates only, not measurements. <a href="https://github.com/K5OHY/Ground_Constants">Source and issues on GitHub</a>.</p>
+    <p class="credits">By K5OHY. Soil data: USDA NRCS Soil Data Access (SSURGO); <a href="https://soilgrids.org">SoilGrids</a> © ISRIC, CC BY 4.0. Coastline: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ODbL, via geo-maps. Map tiles: Esri, USGS. Estimates only, not measurements. <a href="https://github.com/K5OHY/Ground_Constants">Source and issues on GitHub</a>.</p>
   </aside>
 </div>
 
@@ -286,7 +289,7 @@ function mkLayer(h){
   const phi = clamp(1 - db/2.65, 0.25, 0.65);
   let fc = h.fc ?? clamp(0.05 + 0.0065*clay + 0.0025*(100-sand-clay), 0.05, 0.5);
   let wp = h.wp ?? clamp(0.015 + 0.0045*clay, 0.01, 0.35);
-  fc = Math.min(fc, phi*0.95); wp = Math.min(wp, fc*0.9);
+  fc = Math.min(fc, phi*0.85); wp = Math.min(wp, fc*0.9);   // field capacity stays below Saturated (92% of pores)
   const cec = h.cec ?? (clay*0.5 + (h.om ?? 1)*2);
   return {top:h.top, bot:h.bot, tex:h.tex, sand, clay, phi, fc, wp, ece:h.ece ?? 0, cec, rock:false, def};
 }
@@ -294,7 +297,7 @@ function mkLayer(h){
 function organicLayer(top, bot, tex, h){
   const def = ["organic layer texture"]; if(h.ece==null) def.push("salinity"); if(h.cec==null) def.push("CEC");
   const phi = 0.8, fc = h.fc ?? 0.55, wp = Math.min(h.wp ?? 0.25, fc*0.9);
-  return {top, bot, tex, sand:0, clay:10, phi, fc:Math.min(fc,phi*0.95), wp, ece:h.ece ?? 0, cec:h.cec ?? 120, rock:false, organic:true, def};
+  return {top, bot, tex, sand:0, clay:10, phi, fc:Math.min(fc,phi*0.85), wp, ece:h.ece ?? 0, cec:h.cec ?? 120, rock:false, organic:true, def};
 }
 function rockLayer(top,bot,tex){return {top,bot,tex:tex||"Bedrock / cemented",rock:true}}
 function waterLayer(kind,top,bot){const w=WATER[kind]; return {top,bot,tex:w.tex,fixed:{sig:w.sig,eps:w.eps}}}
@@ -307,7 +310,7 @@ function theta(L, k){
     case "dry": return L.wp;
     case "moist": return (L.wp+L.fc)/2;
     case "wet": return L.fc;
-    case "sat": return 0.9*L.phi;
+    case "sat": return Math.max(0.92*L.phi, L.fc);
   }
 }
 // returns {sig mS/m, eps}
@@ -355,7 +358,9 @@ function profile(layers, k, fMHz){
     sig = s/ws; eps = e/ws;
     delta = clamp(1/alphaOf(sig,eps,fMHz), 0.2, 60);
   }
-  return {sig, eps, delta, layers:Ls};
+  // share of the weighting that comes from below the deepest surveyed layer (the assumed continuation)
+  const lastBot = Ls[Ls.length-1].L.bot/100, deep = Math.exp(-2*lastBot/delta);
+  return {sig, eps, delta, deep, layers:Ls};
 }
 
 /* ---------- SSURGO ---------- */
@@ -372,25 +377,35 @@ LEFT JOIN chorizon h ON h.cokey = c.cokey
 WHERE mu.mukey IN (SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('${pt}'))
 ORDER BY c.comppct_r DESC, c.cokey, h.hzdept_r`;
 }
+// Ask Soil Data Access. On an error, keep the server's own message so the page can show what went wrong.
 async function sdaFetch(query){
   const attempts = [
     ()=>fetch(SDA,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({query,format:"JSON+COLUMNNAME"})}),
     ()=>fetch(SDA,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,format:"JSON+COLUMNNAME"})}),
   ];
   let lastErr;
-  for(const a of attempts){
-    try{
-      const r = await a();
-      if(!r.ok){ lastErr = new Error("Soil service returned HTTP "+r.status); continue; }
-      const txt = await r.text();
-      if(!txt.trim()) return [];
-      const j = JSON.parse(txt);
-      const t = j.Table || [];
-      if(!t.length) return [];
-      const cols = t[0];
-      return t.slice(1).map(row=>Object.fromEntries(cols.map((c,i)=>[c,row[i]])));
-    }catch(e){ lastErr = e; }
+  for(let pass=0; pass<2; pass++){
+    for(const a of attempts){
+      try{
+        const r = await a();
+        const txt = await r.text();
+        if(!r.ok){
+          const tmp = document.createElement("textarea"); tmp.innerHTML = txt.replace(/<[^>]+>/g," ");   // decode &#39; and friends
+          const detail = tmp.value.replace(/\s+/g," ").trim().replace(/[.\s]+$/,"").slice(0,240);
+          lastErr = new Error(`the soil service answered HTTP ${r.status}${detail?": "+detail:""}`);
+          lastErr.http = r.status; continue;
+        }
+        if(!txt.trim()) return [];
+        const j = JSON.parse(txt);
+        const t = j.Table || [];
+        if(!t.length) return [];
+        const cols = t[0];
+        return t.slice(1).map(row=>Object.fromEntries(cols.map((c,i)=>[c,row[i]])));
+      }catch(e){ lastErr = e; }
+    }
+    if(pass===0) await new Promise(res=>setTimeout(res, 1200)); // one retry after a short pause
   }
+  console.warn("Soil Data Access request failed:", lastErr && lastErr.message, "\nQuery:", query);
   throw lastErr;
 }
 function nameDefaults(compname){
@@ -454,6 +469,158 @@ function texLayer(tex, ece, top, bot){
   return mkLayer({top,bot,tex,sand,clay,db,fc,wp,ece,cec});
 }
 
+/* ---------- SoilGrids (ISRIC): global soil data for outside the USDA survey ----------
+   Read from ISRIC's map server (WCS) as small GeoTIFF cut-outs around the spot, one per property and depth.
+   Values of 0 mean "no prediction" (cities, water, ice). */
+const SG_WCS = "https://maps.isric.org/mapserv";
+const SG_PROPS = ["sand","clay","bdod","cec","wv0033","wv1500"];
+const SG_DEPTHS = ["0-5cm","5-15cm","15-30cm","30-60cm","60-100cm","100-200cm"];
+const SG_FACTOR = {sand:10, clay:10, bdod:100, cec:10, wv0033:10, wv1500:10};
+// USDA bounding boxes; points outside skip the USDA query (boxes overlap Canada and Mexico, where USDA simply returns nothing).
+const US_BOXES = [[24.3,49.5,-125,-66.8],[51,71.5,-180,-129.9],[51,53.5,172,180],[18.8,22.4,-160.5,-154.6],[17.6,18.6,-67.4,-64.5]];
+const nearUS = (lat, lon) => US_BOXES.some(([a,b,c,e]) => lat>=a && lat<=b && lon>=c && lon<=e);
+
+async function inflateBytes(u8){
+  const s = new Blob([u8]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+// Minimal GeoTIFF reader for ISRIC's cut-outs: 16-bit integers, tiled or striped, deflate or none, optional predictor.
+async function readTiff(buf){
+  const dv = new DataView(buf), le = dv.getUint16(0) === 0x4949;
+  const g16 = o => dv.getUint16(o, le), g32 = o => dv.getUint32(o, le);
+  const ifd = g32(4), n = g16(ifd), tags = {}, size = {1:1,2:1,3:2,4:4,5:8,11:4,12:8};
+  for(let i=0; i<n; i++){
+    const e = ifd+2+12*i, t = g16(e), ty = g16(e+2), c = g32(e+4), o = (size[ty]||1)*c <= 4 ? e+8 : g32(e+8), v = [];
+    for(let k=0; k<c; k++){
+      if(ty===3) v.push(g16(o+2*k)); else if(ty===4) v.push(g32(o+4*k)); else if(ty===12) v.push(dv.getFloat64(o+8*k, le));
+      else if(ty===11) v.push(dv.getFloat32(o+4*k, le)); else if(ty===5) v.push(g32(o+8*k)/g32(o+8*k+4)); else v.push(dv.getUint8(o+k));
+    }
+    tags[t] = v;
+  }
+  const w = tags[256][0], h = tags[257][0], comp = tags[259][0], pred = (tags[317]||[1])[0], sf = (tags[339]||[1])[0];
+  if((tags[258]||[16])[0] !== 16) throw new Error("unexpected soil map format");
+  const tiled = !!tags[322], tw = tiled ? tags[322][0] : w, th = tiled ? tags[323][0] : (tags[278]||[h])[0];
+  const offs = tiled ? tags[324] : tags[273], cnts = tiled ? tags[325] : tags[279];
+  const vals = new Array(w*h).fill(null), across = Math.ceil(w/tw);
+  for(let i=0; i<offs.length; i++){
+    let raw = new Uint8Array(buf, offs[i], cnts[i]);
+    if(comp===8 || comp===32946) raw = await inflateBytes(raw); else if(comp!==1) throw new Error("unexpected soil map compression");
+    const rdv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength), rows = Math.min(th, Math.floor(raw.byteLength/(2*tw)));
+    const tx = (i%across)*tw, ty = Math.floor(i/across)*th;
+    for(let r=0; r<rows; r++){
+      let prev = 0;
+      for(let x=0; x<tw; x++){
+        let v = sf===2 ? rdv.getInt16(2*(r*tw+x), le) : rdv.getUint16(2*(r*tw+x), le);
+        if(pred===2){ v = sf===2 ? ((v+prev+32768)&0xffff)-32768 : (v+prev)&0xffff; prev = v; }
+        const X = tx+x, Y = ty+r; if(X<w && Y<h) vals[Y*w+X] = v;
+      }
+    }
+  }
+  return {w, h, x0:tags[33922][3], y0:tags[33922][4], sx:tags[33550][0], sy:tags[33550][1], vals};
+}
+async function sgCoverage(prop, depth, lat, lon, half){
+  const q = `?map=/map/${prop}.map&SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&COVERAGEID=${prop}_${depth}_mean&FORMAT=image/tiff`
+    + `&SUBSET=long(${(lon-half).toFixed(4)},${(lon+half).toFixed(4)})&SUBSET=lat(${(lat-half).toFixed(4)},${(lat+half).toFixed(4)})`
+    + `&SUBSETTINGCRS=http://www.opengis.net/def/crs/EPSG/0/4326&OUTPUTCRS=http://www.opengis.net/def/crs/EPSG/0/4326`;
+  const ctl = new AbortController(), timer = setTimeout(()=>ctl.abort(), 30000);
+  let r;
+  try{ r = await fetch(SG_WCS+q, {signal:ctl.signal}); }
+  catch(e){ throw new Error(e.name==="AbortError" ? "the global soil map server took too long to answer" : "could not reach the global soil map server"); }
+  finally{ clearTimeout(timer); }
+  const buf = await r.arrayBuffer();
+  if(!r.ok || !/tiff/.test(r.headers.get("content-type")||"")){
+    const t = document.createElement("textarea"); t.innerHTML = new TextDecoder().decode(buf).replace(/<[^>]+>/g," ");
+    const err = new Error(`the global soil map server answered HTTP ${r.status}: ${t.value.replace(/\s+/g," ").trim().slice(0,160)}`); err.http = r.status; throw err;
+  }
+  return readTiff(buf);
+}
+// Which cells to use: the cell under the spot if it has data, else every cell with data in the cut-out, weighted by 1/distance².
+function pickCells(grid, lat, lon){
+  const col = Math.floor((lon-grid.x0)/grid.sx), row = Math.floor((grid.y0-lat)/grid.sy);
+  if(col>=0 && row>=0 && col<grid.w && row<grid.h && grid.vals[row*grid.w+col] > 0) return {cells:[{i:row*grid.w+col, wt:1}], km:0};
+  const kx = 111.32*Math.cos(lat*Math.PI/180), ky = 110.57, cells = []; let far = 0;
+  for(let r=0; r<grid.h; r++) for(let c=0; c<grid.w; c++){
+    const i = r*grid.w+c; if(!(grid.vals[i] > 0)) continue;
+    const d = Math.hypot((grid.x0+(c+0.5)*grid.sx-lon)*kx, (grid.y0-(r+0.5)*grid.sy-lat)*ky);
+    cells.push({i, wt:1/Math.max(d,0.1)**2}); far = Math.max(far, d);
+  }
+  return cells.length ? {cells, km:far} : null;
+}
+function cellValue(grid, pick, factor){
+  let s=0, w=0;
+  for(const {i,wt} of pick.cells){ const v = grid.vals[i]; if(v > 0){ s += wt*v; w += wt; } }
+  return w ? s/w/factor : null;
+}
+async function pool(jobs, limit, onDone){
+  const out = new Array(jobs.length); let next = 0, done = 0;
+  async function worker(){ while(next < jobs.length){ const k = next++; out[k] = await jobs[k](); onDone && onDone(++done, jobs.length); } }
+  await Promise.all(Array.from({length:Math.min(limit, jobs.length)}, worker));
+  return out;
+}
+function textureName(sand, clay){
+  const silt = 100 - sand - clay;
+  if(clay >= 40) return silt >= 40 ? "Silty clay" : sand > 45 ? "Sandy clay" : "Clay";
+  if(clay >= 35 && sand > 45) return "Sandy clay";
+  if(clay >= 27) return sand > 45 ? "Sandy clay loam" : silt > 50 ? "Silty clay loam" : "Clay loam";
+  if(clay >= 20 && sand > 45) return "Sandy clay loam";
+  if(silt >= 80 && clay < 12) return "Silt";
+  if(silt >= 50) return "Silt loam";
+  if(sand >= 85 && silt + 1.5*clay < 15) return "Sand";
+  if(sand >= 70 && silt + 2*clay < 30) return "Loamy sand";
+  if(sand > 52 || (clay < 7 && silt < 50)) return "Sandy loam";
+  return "Loam";
+}
+function soilGridsComps(depths){
+  const layers = depths.map(d=>{
+    const L = mkLayer({top:d.top, bot:d.bot, tex:textureName(d.sand,d.clay)+" (est.)", sand:d.sand, clay:d.clay,
+      db: d.db || null, cec: d.cec, ece: null, om: null,
+      fc: d.fc!=null ? d.fc/100 : null, wp: d.wp!=null ? d.wp/100 : null});
+    L.def = L.def.map(x=>x==="salinity" ? "salinity (not in global data)" : x);
+    return L;
+  });
+  return [{name:"SoilGrids estimate", pct:100, layers, sg:true}];
+}
+/* Recent lookups, kept in memory and (when the browser allows) in local storage, so repeat clicks and outages cost nothing. */
+const memCache = new Map();
+function cacheGet(key){
+  if(memCache.has(key)) return memCache.get(key);
+  try{ const v = localStorage.getItem("gce:"+key); if(v){ const o = JSON.parse(v); memCache.set(key,o); return o; } }catch(e){}
+  return undefined;
+}
+function cachePut(key, val){
+  memCache.set(key, val);
+  try{
+    localStorage.setItem("gce:"+key, JSON.stringify(val));
+    const idx = JSON.parse(localStorage.getItem("gce:index")||"[]").filter(k=>k!==key); idx.push(key);
+    while(idx.length > 60){ localStorage.removeItem("gce:"+idx.shift()); }
+    localStorage.setItem("gce:index", JSON.stringify(idx));
+  }catch(e){}
+}
+// Returns {depths:[…], km} (km = how far out cells were averaged when the spot itself has no data), or null when there is none nearby.
+async function soilGridsFetch(lat, lon, onProgress){
+  const key = `sg2:${lat.toFixed(3)},${lon.toFixed(3)}`;
+  const hit = cacheGet(key); if(hit !== undefined) return hit;
+  if(typeof DecompressionStream === "undefined") throw new Error("this browser is too old to read the global soil maps; try a current Chrome, Edge, Firefox or Safari");
+  // find usable cells from the top-layer sand map: about 1 km around the spot, widening to about 5 km
+  let half = 0.012, probe = await sgCoverage("sand", SG_DEPTHS[0], lat, lon, half), pick = pickCells(probe, lat, lon);
+  if(!pick){ half = 0.05; probe = await sgCoverage("sand", SG_DEPTHS[0], lat, lon, half); pick = pickCells(probe, lat, lon); }
+  if(!pick){ cachePut(key, null); return null; }
+  const jobs = [];
+  for(const p of SG_PROPS) for(const d of SG_DEPTHS) if(!(p==="sand" && d===SG_DEPTHS[0])) jobs.push({p, d});
+  const grids = await pool(jobs.map(j=>()=>sgCoverage(j.p, j.d, lat, lon, half)), 6, onProgress);
+  const val = {}; jobs.forEach((j,k)=>{ (val[j.p] ||= {})[j.d] = cellValue(grids[k], pick, SG_FACTOR[j.p]); });
+  (val.sand ||= {})[SG_DEPTHS[0]] = cellValue(probe, pick, SG_FACTOR.sand);
+  const depths = [];
+  for(const d of SG_DEPTHS){
+    const [top, bot] = d.replace("cm","").split("-").map(Number), g = p => val[p] ? val[p][d] : null;
+    if(g("sand")==null || g("clay")==null) continue;
+    depths.push({top, bot, sand:g("sand"), clay:g("clay"), db:g("bdod"), cec:g("cec"), fc:g("wv0033"), wp:g("wv1500")});
+  }
+  const res = depths.length ? {depths, km: pick.km} : null;
+  cachePut(key, res);
+  return res;
+}
+
 /* ---------- UI ---------- */
 const $ = id=>document.getElementById(id);
 const fmtS = s => s<10 ? s.toFixed(1) : s<100 ? s.toFixed(0) : Math.round(s).toString();
@@ -487,35 +654,36 @@ function fMHz(){return BANDS.find(b=>b[0]===state.band)[1]}
 
 function unitValue(comps, k, f){
   const usable = comps.filter(c=>c.layers);
-  let w=0, s=0, e=0, d=0; const per=[];
+  let w=0, s=0, e=0, d=0, dp=0; const per=[];
   for(const c of usable){
     const p = profile(c.layers, k, f);
     per.push({c,p});
-    const wt = c.pct||1; w+=wt; s+=wt*p.sig; e+=wt*p.eps; d+=wt*p.delta;
+    const wt = c.pct||1; w+=wt; s+=wt*p.sig; e+=wt*p.eps; d+=wt*p.delta; dp+=wt*(p.deep||0);
   }
   if(!w) return null;
-  return {sig:s/w, eps:e/w, delta:d/w, per};
+  return {sig:s/w, eps:e/w, delta:d/w, deep:dp/w, per};
 }
 // Combine one or more sample points. Nearby samples are weighted by 1/distance²; conductivity is averaged on a log scale.
 function siteValue(D, k, f){
-  const per=[]; let w=0, ls=0, e=0, d=0;
+  const per=[]; let w=0, ls=0, e=0, d=0, dp=0;
   for(const s of D.samples){
     const u = unitValue(s.comps, k, f); if(!u) continue;
     const wt = 1/Math.pow(Math.max(s.dist, 0.3), 2);
-    per.push({s,u,wt}); w+=wt; ls+=wt*Math.log(u.sig); e+=wt*u.eps; d+=wt*u.delta;
+    per.push({s,u,wt}); w+=wt; ls+=wt*Math.log(u.sig); e+=wt*u.eps; d+=wt*u.delta; dp+=wt*(u.deep||0);
   }
   if(!w) return null;
-  return {sig:Math.exp(ls/w), eps:e/w, delta:d/w, per};
+  return {sig:Math.exp(ls/w), eps:e/w, delta:d/w, deep:dp/w, per};
 }
 
-/* ---------- salt water (OpenStreetMap coastline, clipped to the US) ---------- */
+/* ---------- salt water (OpenStreetMap coastline) ---------- */
 // Land polygons are stored clockwise, so land is always on the right-hand side of each coastline segment.
-let COAST = null;
-function loadCoast(){
-  if(COAST) return COAST;
-  const el = document.getElementById("coastData"); COAST = [];
-  if(!el) return COAST;
-  for(const line of el.textContent.trim().split("\n")){
+// Worldwide data lives in 30° tiles under coast/ next to this page; a US-only copy is embedded for use without a web server.
+const COAST_TILE = 30;
+const COAST_TILES = new Set(["n00e000","n00e030","n00e060","n00e090","n00e120","n00e150","n00w030","n00w060","n00w090","n00w120","n00w180","n30e000","n30e030","n30e090","n30e120","n30e150","n30w030","n30w060","n30w090","n30w120","n30w150","n30w180","n60e000","n60e030","n60e060","n60e090","n60e120","n60e150","n60e180","n60w030","n60w060","n60w090","n60w120","n60w150","n60w180","s30e000","s30e030","s30e060","s30e090","s30e120","s30e150","s30e180","s30w030","s30w060","s30w090","s30w120","s30w150","s30w180","s60e000","s60e030","s60e060","s60e090","s60e120","s60e150","s60w030","s60w060","s60w090","s60w180","s90e000","s90e030","s90e060","s90e090","s90e120","s90e150","s90e180","s90w030","s90w060","s90w090","s90w120","s90w150","s90w180"]);
+function decodeRuns(text){
+  const runs = [];
+  for(const line of text.trim().split("\n")){
+    if(!line) continue;
     const pts = []; let i=0, lat=0, lon=0;
     while(i < line.length){
       for(const which of [0,1]){
@@ -528,13 +696,47 @@ function loadCoast(){
     }
     let a=90,b=-90,c=180,e=-180;
     for(let k=0;k<pts.length;k+=2){ a=Math.min(a,pts[k]); b=Math.max(b,pts[k]); c=Math.min(c,pts[k+1]); e=Math.max(e,pts[k+1]); }
-    COAST.push({pts:new Float64Array(pts), box:[a,b,c,e]});
+    runs.push({pts:new Float64Array(pts), box:[a,b,c,e]});
   }
-  return COAST;
+  return runs;
+}
+let COAST_US = null;
+function loadCoastUS(){
+  if(COAST_US) return COAST_US;
+  const el = document.getElementById("coastData");
+  COAST_US = el ? decodeRuns(el.textContent) : [];
+  return COAST_US;
+}
+const tileName = (la, lo) => `${la>=0?"n":"s"}${String(Math.abs(la)).padStart(2,"0")}${lo>=0?"e":"w"}${String(Math.abs(lo)).padStart(3,"0")}`;
+const tileCache = new Map();
+function fetchTile(name){
+  if(!tileCache.has(name)){
+    tileCache.set(name, fetch("coast/"+name+".txt").then(r=>{ if(!r.ok) throw new Error("HTTP "+r.status); return r.text(); })
+      .then(decodeRuns).catch(e=>{ tileCache.delete(name); throw e; }));
+  }
+  return tileCache.get(name);
+}
+// Coastline runs around a point: worldwide tiles when the page is on a web server, else the embedded US copy.
+async function coastNear(lat, lon){
+  const mLat = SALT_R/111 + 1, mLon = Math.min(180, mLat/Math.max(0.1, Math.cos(lat*Math.PI/180)));
+  const names = new Set();
+  for(let la = Math.floor((lat-mLat)/COAST_TILE)*COAST_TILE; la <= lat+mLat; la += COAST_TILE)
+    for(let lo = Math.floor((lon-mLon)/COAST_TILE)*COAST_TILE; lo <= lon+mLon; lo += COAST_TILE){
+      if(la < -90 || la >= 90 || lo < -180 || lo > 180) continue;
+      const n = tileName(la, lo); if(COAST_TILES.has(n)) names.add(n);
+    }
+  try{
+    const parts = await Promise.all([...names].map(fetchTile));
+    return {runs: parts.flat(), source:"world"};
+  }catch(e){
+    return nearUS(lat, lon) ? {runs: loadCoastUS(), source:"us"} : null;
+  }
 }
 const SALT_R = 60; // km searched around the station
-function saltProfile(lat, lon){
-  const runs = loadCoast(); if(!runs.length) return null;
+const SEA_SURE_KM = 1; // farther than this on the sea side of the coastline is open water, whatever the soil data says
+const SG_CELL_KM = 0.3; // about one SoilGrids cell: closer to shore than this, a SoilGrids cell with soil is trusted over the coastline
+function saltProfile(lat, lon, runs){
+  if(!runs) return null;
   const kx = 111.32*Math.cos(lat*Math.PI/180), ky = 110.57;
   const dLat = SALT_R/ky, dLon = SALT_R/kx;
   const segs = [];
@@ -549,16 +751,16 @@ function saltProfile(lat, lon){
       segs.push([x1,y1,x2,y2]);
     }
   }
-  if(!segs.length) return {dist:Infinity};
+  if(!segs.length) return {dist:Infinity, farLand: farSide(lat, lon, runs)};
   // nearest shoreline point and which side of it we are on
-  let best=Infinity, bx=0, by=0, side=0;
+  let best=Infinity, bx=0, by=0;
   for(const [x1,y1,x2,y2] of segs){
     const dx=x2-x1, dy=y2-y1, L2=dx*dx+dy*dy||1e-12;
     const t=Math.max(0,Math.min(1,(-x1*dx - y1*dy)/L2));
     const px=x1+t*dx, py=y1+t*dy, d=Math.hypot(px,py);
-    if(d < best - 1e-9){ best=d; bx=px; by=py; side = dx*(0-y1) - dy*(0-x1); }
+    if(d < best - 1e-9){ best=d; bx=px; by=py; }
   }
-  const onLandCoast = side < 0;
+  const onLandCoast = landSide(segs, best);
   // cast rays every 5° and record the stretches that lie over salt water
   const rays = [];
   for(let az=0; az<360; az+=5){
@@ -578,6 +780,34 @@ function saltProfile(lat, lon){
   }
   return {dist:best, bearing:(Math.atan2(bx,by)*180/Math.PI+360)%360, onLandCoast,
           nearLat: lat + by/ky, nearLon: lon + bx/kx, rays};
+}
+// With no coast within the search radius: which side of the nearest coastline (anywhere in the loaded data) is this spot on?
+// Only used to tell open sea from "no data" when neither soil source has anything here. null = no coastline loaded at all.
+function farSide(lat, lon, runs){
+  if(!runs || !runs.length) return null;
+  const kx = 111.32*Math.cos(lat*Math.PI/180), ky = 110.57;
+  let best = Infinity; const segs = [];
+  for(const r of runs){
+    const p = r.pts;
+    for(let k=0; k<p.length-2; k+=2){
+      const y1=(p[k]-lat)*ky, x1=(p[k+1]-lon)*kx, dx=(p[k+3]-p[k+1])*kx, dy=(p[k+2]-p[k])*ky, L2=dx*dx+dy*dy||1e-12;
+      const t=Math.max(0,Math.min(1,(-x1*dx - y1*dy)/L2)), d=Math.hypot(x1+t*dx, y1+t*dy);
+      if(d < best + 1e-6){ if(d < best - 1e-6) segs.length = 0; best = Math.min(best, d); segs.push([x1, y1, x1+dx, y1+dy]); }
+    }
+  }
+  return landSide(segs, best);
+}
+// Is the spot (at the origin) on the land side of the coastline? Land is on the right of each segment.
+// When the nearest point is a corner shared by two segments, either segment alone can give the wrong side,
+// so add the signed distances to every segment that is as close as the nearest: the corner's bisector decides.
+function landSide(segs, best){
+  let s = 0;
+  for(const [x1,y1,x2,y2] of segs){
+    const dx=x2-x1, dy=y2-y1, L=Math.hypot(dx,dy); if(!L) continue;
+    const t=Math.max(0,Math.min(1,(-x1*dx - y1*dy)/(L*L))), d=Math.hypot(x1+t*dx, y1+t*dy);
+    if(d <= best + 1e-6) s += (dx*(0-y1) - dy*(0-x1))/L;
+  }
+  return s < 0;
 }
 // Share of the first Fresnel zone (along the ray) that lies over salt water, for a source hLam wavelengths up.
 function seaFrac(ray, hLam, psi, lamKm){
@@ -628,18 +858,50 @@ function mixR(sig,eps,f,psi,fSea,which){
   return {re:(1-fSea)*land.re+fSea*sea.re, im:(1-fSea)*land.im+fSea*sea.im};
 }
 function vertDbi(sig,eps,f,psi,fSea=0){ const r=psi*Math.PI/180; const F=Math.cos(Math.PI/2*Math.sin(r))/Math.cos(r); return 5.15+20*Math.log10(F)+20*Math.log10(C.abs(C.add(C.r(1), mixR(sig,eps,f,psi,fSea,"rv")))/2) }
-function dipoleDbi(sig,eps,f,psi,hLam,fSea=0){ const ph=-4*Math.PI*hLam*Math.sin(psi*Math.PI/180); return 2.15+20*Math.log10(C.abs(C.add(C.r(1), C.mul(mixR(sig,eps,f,psi,fSea,"rh"), C.exp(ph))))) }
+// Sine and cosine integrals by Simpson's rule (accurate to ~1e-6 for the arguments used here).
+function SiCi(x){
+  if(x <= 0) return {si:0, ci:-Infinity};
+  const n = Math.max(200, Math.ceil(x*40)) * 2, hstep = x/n;
+  let si = 0, cm = 0;
+  for(let i=0; i<=n; i++){
+    const t = i*hstep, w = (i===0||i===n) ? 1 : (i%2 ? 4 : 2);
+    si += w * (t===0 ? 1 : Math.sin(t)/t);
+    cm += w * (t===0 ? 0 : (Math.cos(t)-1)/t);
+  }
+  return {si: si*hstep/3, ci: 0.5772156649 + Math.log(x) + cm*hstep/3};
+}
+// Mutual impedance of two parallel side-by-side half-wave dipoles d wavelengths apart (ohms).
+const Z12cache = new Map();
+function mutualZ(d){
+  const key = d.toFixed(4); if(Z12cache.has(key)) return Z12cache.get(key);
+  const k = 2*Math.PI, L = 0.5, u0 = k*Math.max(d,1e-4), r = Math.sqrt(d*d+L*L), u1 = k*(r+L), u2 = k*(r-L);
+  const a = SiCi(u0), b = SiCi(u1), c = SiCi(u2);
+  const z = {re: 30*(2*a.ci - b.ci - c.ci), im: -30*(2*a.si - b.si - c.si)};
+  Z12cache.set(key, z); return z;
+}
+// A dipole's radiation resistance changes with height because the ground's reflected "image" couples back to it
+// (image theory: R = R11 + Re(Γ0·Z12(2h)), Γ0 = reflection straight down). Same input power, different resistance → gain correction.
+function heightCorrDb(sig,eps,f,hLam,fSea0){
+  const G0 = mixR(sig,eps,f,90,fSea0,"rh"), z = mutualZ(2*hLam);
+  const R = 73.13 + (G0.re*z.re - G0.im*z.im);
+  return 10*Math.log10(73.13/Math.max(R, 5));
+}
+function dipoleDbi(sig,eps,f,psi,hLam,fSea=0,fSea0=fSea){
+  const ph=-4*Math.PI*hLam*Math.sin(psi*Math.PI/180);
+  return 2.15+20*Math.log10(C.abs(C.add(C.r(1), C.mul(mixR(sig,eps,f,psi,fSea,"rh"), C.exp(ph))))) + heightCorrDb(sig,eps,f,hLam,fSea0);
+}
+const PERFECT = [1e7, 1];   // σ (mS/m), εr standing in for a perfect ground
 const ANG = [5,10,20];
 function userHeightFt(){ const v = parseFloat($("hUser").value); return isFinite(v) && v >= 3 && v <= 400 ? v : null; }
 function gainRows(sig,eps,f,ray){
   const lamKm = 0.29979/f, lamM = 299.79/f, half = ft(lamM/2), quarter = ft(lamM/4);
   const rows = [
     {key:"vert", name:"¼λ vertical, ground-mounted", g:ANG.map(p=>vertDbi(sig,eps,f,p, seaFrac(ray,0.1,p,lamKm)))},
-    {key:"q", ft:quarter, name:`Dipole at ¼λ (${quarter} ft)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,0.25, seaFrac(ray,0.25,p,lamKm)))},
-    {key:"h", ft:half, name:`Dipole at ½λ (${half} ft)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,0.5, seaFrac(ray,0.5,p,lamKm)))},
+    {key:"q", ft:quarter, name:`Dipole at ¼λ (${quarter} ft / ${Math.round(lamM/4)} m)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,0.25, seaFrac(ray,0.25,p,lamKm), seaFrac(ray,0.25,90,lamKm)))},
+    {key:"h", ft:half, name:`Dipole at ½λ (${half} ft / ${Math.round(lamM/2)} m)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,0.5, seaFrac(ray,0.5,p,lamKm), seaFrac(ray,0.5,90,lamKm)))},
   ];
   const uf = userHeightFt();
-  if(uf){ const hl = uf/3.281/lamM; rows.push({key:"u", ft:Math.round(uf), user:true, name:`Your dipole at ${Math.round(uf)} ft (${hl.toFixed(2)}λ)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,hl, seaFrac(ray,hl,p,lamKm)))}); }
+  if(uf){ const hl = uf/3.281/lamM; rows.push({key:"u", ft:Math.round(uf), user:true, name:`Your dipole at ${Math.round(uf)} ft / ${Math.round(uf/3.281)} m (${hl.toFixed(2)}λ)`, g:ANG.map(p=>dipoleDbi(sig,eps,f,p,hl, seaFrac(ray,hl,p,lamKm), seaFrac(ray,hl,90,lamKm)))}); }
   return rows;
 }
 const fmtDb = x => (x>=0?"+":"−")+Math.abs(x).toFixed(1)+" dB";
@@ -649,7 +911,7 @@ const ft = m => Math.round(m*3.281);
 function renderAdvice(D, u, f){
   const {sig, eps} = u;
   const lam = 299.79/f;
-    const h10 = horizDb(sig,eps,f,10,0.5);
+  const h10 = dipoleDbi(sig,eps,f,10,0.5) - dipoleDbi(...PERFECT,f,10,0.5);
   const pba = brewster(sig,eps,f);
   const dry = D.samples.length ? siteValue(D,"dry",f) : null, wet = D.samples.length ? siteValue(D,"wet",f) : null;
   const [cls] = classify(sig);
@@ -696,11 +958,28 @@ function renderAdvice(D, u, f){
   else { pill=`${dname} strongly favored broadside`; col="var(--bad)"; text=cap1(`${over}the ${dname} is ${gap.toFixed(1)} dB stronger than a vertical at 5–10°, off its broadside. This ground costs a vertical much of its low-angle signal.`); }
   $("vPill").textContent = pill; $("vPill").style.color = col; $("vText").textContent = text;
 
+  // does the verdict hold if the ground is wetter or drier?
+  const robust = $("vRobust");
+  if(u.custom || D.onSea || !D.samples.length){ robust.hidden = true; }
+  else {
+    const CAT = ["vertical favored","about even","dipole favored"];
+    const cat = g => g <= -1 ? 0 : g <= 2 ? 1 : 2;     // who wins, not by how much
+    const per = STATES.map(st=>{ const v = siteValue(D, st.k, f); if(!v) return null;
+      const r = gainRows(v.sig, v.eps, f, towardSea ? seaRay : null), rr = r.find(x=>x.key==="u") || r.find(x=>x.key==="h");
+      return {name:st.name, c:cat(((rr.g[0]-r[0].g[0]) + (rr.g[1]-r[0].g[1]))/2)}; }).filter(Boolean);
+    const groups = []; for(const x of per){ const last = groups[groups.length-1]; if(last && last.c===x.c) last.names.push(x.name); else groups.push({c:x.c, names:[x.name]}); }
+    robust.hidden = false;
+    robust.className = "hint2" + (groups.length > 1 ? " warn-text" : "");
+    robust.textContent = groups.length === 1
+      ? "Same verdict in every ground condition, bone dry to saturated."
+      : "Depends on moisture: " + groups.map(g=>`${g.names.join(", ")}: ${CAT[g.c]}`).join(" · ") + ".";
+  }
+
   let g = `<tr><th>Antenna</th>${ANG.map(p=>`<th class="n">${p}°</th>`).join("")}</tr>`;
   for(const r of rows){
     g += `<tr${r.user?' class="sel"':''}><td>${r.name}</td>${r.g.map((x,i)=>{const best = x >= Math.max(...rows.map(q=>q.g[i]))-0.05; return `<td class="n">${best?"<b>"+fmtDbi(x)+"</b>":fmtDbi(x)}</td>`}).join("")}</tr>`;
   }
-  g += `<tr><td colspan="4" class="cap">Gain at each elevation angle on ${state.band}${towardSea?`, looking ${compass(seaRay.az)} toward the salt water`:seaRows?", in directions away from the salt water":""}, over flat, open ground. Dipoles are broadside. Bold is the strongest. DX signals mostly arrive at 3–15°. The vertical assumes enough radials that loss near the antenna is small. Hills, slopes and buildings are not included.</td></tr>`;
+  g += `<tr><td colspan="4" class="cap">Gain at each elevation angle on ${state.band}${towardSea?`, looking ${compass(seaRay.az)} toward the salt water`:seaRows?", in directions away from the salt water":""}, over flat, open ground. Dipoles are broadside. Bold is the strongest. DX signals mostly arrive at 3–15°. The vertical assumes enough radials that loss near the antenna is small. Hills, slopes and buildings are not included. This is an estimate, not a NEC model: for real numbers, model your antenna in MMANA-GAL with a few ground values from the conditions table below, for example Dry and Wet.</td></tr>`;
   $("gainTbl").innerHTML = g;
 
   const items = [];
@@ -716,10 +995,11 @@ function renderAdvice(D, u, f){
   if(uu) htxt += ` Your ${uu.ft} ft dipole is ${(uu.ft/3.281/lam).toFixed(2)}λ up on ${state.band}: ${fmtDbi(uu.g[1])} dBi at 10° and ${fmtDbi(uu.g[2])} dBi at 20°.`;
   items.push(htxt);
   if(f < 8){
-    const nv = horizDb(sig,eps,f,90,0.1);
+    const nv = dipoleDbi(sig,eps,f,90,0.1) - dipoleDbi(...PERFECT,f,90,0.1);
     items.push(`<b>Low dipoles and NVIS:</b> a dipole at ${ft(lam*0.1)} ft (0.1λ) sends most of its signal straight up for contacts out to a few hundred miles. The reflection off this ground costs ${Math.abs(nv).toFixed(1)} dB overhead compared with perfect ground. That low, the antenna also heats the soil right below it, so real losses are higher${sig<5?" on ground this poor; a wire or two laid on the ground under the dipole helps":""}.`);
   }
   // salt water
+  if(!D.salt && !D.onSea && D.mode!=="custom" && D.mode!=="manual") items.push(`<b>Salt water:</b> not checked here. The worldwide coastline loads only when the page is opened from its website; opened as a file, it covers the US only.`);
   if(D.salt && isFinite(D.salt.dist) && !D.onSea){
     const mi = D.salt.dist*0.6214, where = `${mi<1?mi.toFixed(2):mi.toFixed(1)} mi to the ${compass(D.salt.bearing)}`;
     if(seaRows){
@@ -759,7 +1039,13 @@ function dataQuality(D, est){
   const lines = []; let warn = false;
   if(D.onSea) return {html:"Open salt water (from the coastline data).", warn:false};
   if(D.mode==="manual") return {html:"Manual soil type, typical values for that texture.", warn:false};
-  if(D.nearby){ lines.push(`No usable soil data at this spot. Averaged from ${est.per.length} nearby spot${est.per.length>1?"s":""}.`); warn = true; }
+  if(D.source==="soilgrids"){
+    lines.push(`Global soil data from SoilGrids (ISRIC): a computer-predicted grid of about 250 m, not a field survey. Used because ${D.sgReason}.`);
+    if(D.sgKm > 0) lines.push(`SoilGrids has no soil value at this exact spot (usually a town, water or ice), so the soil around it is averaged, out to about ${D.sgKm<1.6?(D.sgKm*0.6214).toFixed(1):Math.round(D.sgKm*0.6214)} mi.`);
+    lines.push(`<span class="warn">Salinity is not in the global data, so non-saline soil is assumed. Near the sea or on salty desert ground, real conductivity can be much higher; the manual soil type has salinity settings.</span>`);
+    warn = true;
+  }
+  else if(D.nearby){ lines.push(`No usable soil data at this spot. Averaged from ${est.per.length} nearby spot${est.per.length>1?"s":""}.`); warn = true; }
   else {
     const comps = D.samples[0].comps, tot = comps.reduce((a,c)=>a+(c.pct||0),0) || comps.length;
     const pct = c => (tot===comps.length && !comps.some(x=>x.pct)) ? 1 : (c.pct||0);
@@ -768,20 +1054,22 @@ function dataQuality(D, est){
     const lab = comps.filter(c=>c.layers && !c.assumed).reduce((a,c)=>a+pct(c),0)/tot;
     const asm = comps.filter(c=>c.layers && c.assumed && !isW(c)).reduce((a,c)=>a+pct(c),0)/tot;
     const none = Math.max(0, 1 - lab - asm - wat);
-    let t = wat > 0.995 ? "This map unit is water" : `Lab data for ${Math.round(lab*100)}% of this map unit`;
+    let t = wat > 0.995 ? "This map unit is water" : `Survey layer data for ${Math.round(lab*100)}% of this map unit`;
     if(wat > 0.005 && wat <= 0.995) t += `, ${Math.round(wat*100)}% water`;
     if(asm > 0.005) t += `, ${Math.round(asm*100)}% estimated from the soil name only`;
     if(none > 0.005) t += `, ${Math.round(none*100)}% with no soil (skipped)`;
     lines.push(t+".");
     if(lab + asm + wat < 0.5){ warn = true; lines.push(`<span class="warn">Low coverage: the result rests on ${Math.round((lab+asm+wat)*100)}% of the map unit.</span>`); }
   }
+  // much of the answer from below the surveyed depth?
+  if(est && est.deep > 0.4) { warn = true; lines.push(`<span class="warn">On ${state.band}, about ${Math.round(est.deep*100)}% of this estimate comes from below the surveyed depth (about 2 m), where the deepest layer is assumed to continue. Rock, caliche or groundwater down there could change the result a lot.</span>`); }
   // which properties were filled with defaults, across the layers actually used
   const counts = {}; let n = 0;
   for(const x of est.per) for(const c of x.u.per) for(const y of c.p.layers){
     if(y.L.rock || y.L.fixed || y.L.water) continue; n++;
     for(const d of (y.L.def||[])) counts[d] = (counts[d]||0)+1;
   }
-  const keys = Object.keys(counts);
+  const keys = Object.keys(counts).filter(k=>k!=="salinity (not in global data)");
   if(n && keys.length) lines.push("Defaults used for: " + keys.map(k=>`${k} (${counts[k]===n?"all layers":counts[k]+" of "+n+" layers"})`).join(", ") + ".");
   else if(n) lines.push("No defaults needed.");
   return {html: lines.join("<br>"), warn};
@@ -857,7 +1145,7 @@ function render(){
     let c = `<tr><th>Soil</th><th class="n">Share</th><th class="n">σ</th><th class="n">εr</th></tr>`;
     for(const comp of D.samples[0].comps){
       const p = one.per.find(x=>x.c===comp);
-      c += `<tr><td>${esc(comp.name)}${comp.assumed?' <span class="cap">(no lab data, estimated from name)</span>':''}${!comp.layers?' <span class="cap">(no soil, skipped)</span>':''}</td><td class="n">${comp.pct||"–"}%</td><td class="n">${p?fmtS(p.p.sig):"–"}</td><td class="n">${p?fmtE(p.p.eps):"–"}</td></tr>`;
+      c += `<tr><td>${esc(comp.name)}${comp.assumed?' <span class="cap">(no layer data, estimated from name)</span>':''}${!comp.layers?' <span class="cap">(no soil, skipped)</span>':''}</td><td class="n">${comp.pct||"–"}%</td><td class="n">${p?fmtS(p.p.sig):"–"}</td><td class="n">${p?fmtE(p.p.eps):"–"}</td></tr>`;
     }
     $("comps").innerHTML = c; $("compWrap").hidden=false;
   } else $("compWrap").hidden=true;
@@ -985,47 +1273,99 @@ async function lookup(lat, lon, label){
   const id = ++lookupId;
   if(marker) marker.setLatLng([lat,lon]); else marker = L.marker([lat,lon]).addTo(map);
   sampleDots.clearLayers();
-  state.data = null; state.waterType = "auto"; hideResults();
+  state.data = null; state.waterType = "auto"; state.dir = "sea"; hideResults();
   setStatus(`Looking up soils at ${lat.toFixed(4)}, ${lon.toFixed(4)}…`);
-  try{
-    const rows = await sdaFetch(buildQuery(lat,lon));
+  const where = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+  // salt water first: it tells fresh from salt for survey "Water", and open sea from land
+  let salt = null, coastSource = null;
+  try{ const c = await coastNear(lat, lon); if(c){ coastSource = c.source; salt = saltProfile(lat, lon, c.runs); } }catch(e){ salt = null; }
+  if(id !== lookupId) return;
+  const onSea = !!(salt && isFinite(salt.dist) && !salt.onLandCoast && salt.dist > 0.03);
+  const seaSpot = (sub, note) => {
+    state.data = {mode:"manual", nearby:false, onSea:true, salt, coastSource, samples:[{dist:0, comps:[{name:"Salt water", pct:100, layers:[waterLayer("salt",0,200)]}]}],
+      title: label || "Salt water", sub: `${sub} · ${where}`, note};
+    render();
+  };
+  const SEA_NOTE = "This spot is on salt water, the best ground there is for a vertical.";
+  // The coastline is good to about 100 m, so close to shore the soil data decides: a beach, marsh, barrier island
+  // or fill the coastline puts just offshore still gets its own soil. Only well out from the shore is it taken as sea outright.
+  if(onSea && salt.dist > SEA_SURE_KM){ seaSpot("Open salt water", SEA_NOTE); return; }
+
+  // 1. USDA soil survey (US only)
+  let rows = null, sdaErr = null, reason;
+  if(nearUS(lat, lon)){
+    const key = `sda:${lat.toFixed(5)},${lon.toFixed(5)}`;
+    rows = cacheGet(key);
+    if(rows === undefined){
+      try{ rows = await sdaFetch(buildQuery(lat,lon)); cachePut(key, rows); }
+      catch(e){ rows = null; sdaErr = e; }
+    }
     if(id !== lookupId) return;
-    let salt = null; try{ salt = saltProfile(lat, lon); }catch(e){ salt = null; }
-    const onSea = !!(salt && isFinite(salt.dist) && !salt.onLandCoast && salt.dist > 0.03);
+  }
+  if(rows && rows.length){
     const comps = usableComps(rows, onSea);
-    const where = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-    state.dir = "sea";
     if(comps){
-      state.data = {mode:"ssurgo", nearby:false, salt, samples:[{comps, dist:0, dir:"", muname:rows[0].muname}],
+      state.data = {mode:"ssurgo", source:"usda", nearby:false, salt, coastSource, samples:[{comps, dist:0, dir:"", muname:rows[0].muname}],
         title: label || rows[0].muname,
         sub: `${label?rows[0].muname+" · ":""}${rows[0].areaname||""} · ${where}`, note:""};
       showShore(salt, lat, lon); render(); return;
     }
-    if(onSea){
-      state.data = {mode:"manual", nearby:false, onSea:true, salt, samples:[{dist:0, comps:[{name:"Salt water", pct:100, layers:[waterLayer("salt",0,200)]}]}],
-        title: label || "Salt water", sub: `Open salt water · ${where}`,
-        note:"This spot is on salt water, the best ground there is for a vertical."};
+    if(onSea){ seaSpot("Open salt water", SEA_NOTE); return; }
+    // map unit with no soil (urban land, pits): average nearby USDA soils
+    let found = null;
+    try{ found = await nearbySamples(lat, lon, id); }catch(e){ sdaErr = e; }
+    if(id !== lookupId || found===null && !sdaErr) return;
+    if(found && found.length){
+      for(const s of found) L.circleMarker([s.lat,s.lon],{radius:5,color:"#fff",weight:2,fillColor:"#2f4da0",fillOpacity:.9}).bindTooltip(`${s.muname}`).addTo(sampleDots);
+      const maxMi = Math.max(...found.map(s=>s.dist))*0.6214;
+      showShore(salt, lat, lon);
+      state.data = {mode:"ssurgo", source:"usda", nearby:true, salt, coastSource, samples:found,
+        title: label || "Estimated from nearby soils",
+        sub: `${rows[0].muname} · ${found[0].area||""} · ${where}`,
+        note: `This spot is mapped as “${rows[0].muname}”, with no soil to measure. Values are averaged from ${found.length} nearby spot${found.length>1?"s":""} within ${maxMi<1?maxMi.toFixed(1):Math.round(maxMi)} mi (blue dots), weighted toward the closest.`};
       render(); return;
     }
-    const what = rows.length ? `mapped as “${rows[0].muname}”, with no soil to measure` : "not covered by the soil survey";
-    const found = await nearbySamples(lat, lon, id);
-    if(id !== lookupId || found===null) return;
-    if(!found.length){
-      state.data = null; hideResults();
-      setStatus(`This spot is ${what}, and no soil data turned up within 37 miles. If it is open water, choose fresh or salt water under Manual soil type below.`, true);
+    reason = sdaErr ? "the USDA soil service stopped answering" : `the USDA map unit here (“${rows[0].muname}”) and the area around it have no soil to measure`;
+  }
+  else if(onSea && rows){ seaSpot("Open salt water", SEA_NOTE); return; }
+  else if(sdaErr) reason = "the USDA soil service is not answering right now";
+  else if(rows) reason = "there is no USDA soil survey data at this spot (outside the US, or an unmapped area)";
+  else reason = "this spot is outside the USDA soil survey";
+
+  // 2. SoilGrids, worldwide
+  setStatus(`Looking up global soil data (SoilGrids) at ${where}…`);
+  try{
+    const sg = await soilGridsFetch(lat, lon, (done, total)=>{ if(id===lookupId) setStatus(`Loading global soil data (SoilGrids): ${done} of ${total} map layers…`); });
+    if(id !== lookupId) return;
+    const depths = sg && sg.depths;
+    // On the sea side of the coastline, SoilGrids only counts if its own 250 m cell here has soil;
+    // values averaged in from cells around the spot are the land next to it, not the sea under it.
+    if(onSea && !(depths && sg.km === 0 && salt.dist <= SG_CELL_KM)){ seaSpot("Open salt water", SEA_NOTE); return; }
+    // No soil anywhere: sea if the coastline says so (the nearest coast within the search radius, or else the nearest
+    // coast in the loaded data, or no coast in the data at all), otherwise land with no data (lake, river, glacier, city).
+    const seaSide = salt && coastSource && (isFinite(salt.dist) ? !salt.onLandCoast : salt.farLand !== true);
+    if(!depths && seaSide){
+      if(isFinite(salt.dist)) seaSpot("Open salt water", SEA_NOTE);
+      else seaSpot("Open sea, far from the coast", "This spot is out at sea, far from any coast: the best ground there is for a vertical.");
+      return;
+    }
+    if(!depths){
+      setStatus(`No soil data here: ${reason}, and the global data has none at this spot either (usually a lake, river, glacier or city center). Try a spot nearby, or use the manual soil type below.`, true);
       $("manual").open = true; return;
     }
-    for(const s of found) L.circleMarker([s.lat,s.lon],{radius:5,color:"#fff",weight:2,fillColor:"#2f4da0",fillOpacity:.9}).bindTooltip(`${s.muname}`).addTo(sampleDots);
-    const maxMi = Math.max(...found.map(s=>s.dist))*0.6214;
     showShore(salt, lat, lon);
-    state.data = {mode:"ssurgo", nearby:true, salt, samples:found,
-      title: label || "Estimated from nearby soils",
-      sub: `${rows.length?rows[0].muname+" · ":""}${found[0].area||""} · ${where}`,
-      note: `This spot is ${what}. Values are averaged from ${found.length} nearby spot${found.length>1?"s":""} within ${maxMi<1?maxMi.toFixed(1):Math.round(maxMi)} mi (blue dots), weighted toward the closest.`};
+    state.data = {mode:"soilgrids", source:"soilgrids", sgReason: reason, nearby:false, salt, coastSource,
+      sgKm: sg.km, samples:[{comps: soilGridsComps(depths), dist:0, dir:"", muname:"SoilGrids"}],
+      title: label || "Global soil estimate", sub: `SoilGrids (ISRIC), about 250 m grid · ${where}`,
+      note: sdaErr ? `The USDA soil service didn't answer (${sdaErr.message}), so this uses global soil data, which is less detailed.` : ""};
     render();
   }catch(e){
     if(id !== lookupId) return;
-    setStatus("Could not reach the USDA soil service ("+(e.message||"network error")+"). Check your internet connection and try again, or use the manual soil type below.", true);
+    const parts = [];
+    if(sdaErr) parts.push(`USDA: ${sdaErr.message}`);
+    parts.push(`SoilGrids: ${e.message}`);
+    setStatus(`Could not get soil data (${parts.join("; ")}). Try again in a minute, or use the manual soil type below.`, true);
     $("manual").open = true;
   }
 }
@@ -1092,11 +1432,11 @@ map.zoomControl.getContainer().appendChild(mapLocate);
 
 async function geocode(q){
   try{
-    const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&countryCode=USA&SingleLine="+encodeURIComponent(q));
+    const r = await fetch("https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&SingleLine="+encodeURIComponent(q));
     const j = await r.json(); const c = j.candidates && j.candidates[0];
     if(c) return {lat:c.location.y, lon:c.location.x, name:c.address.split(",")[0]};
   }catch(e){}
-  const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q="+encodeURIComponent(q));
+  const r = await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q));
   const j = await r.json();
   return j.length ? {lat:+j[0].lat, lon:+j[0].lon, name:j[0].display_name.split(",")[0]} : null;
 }

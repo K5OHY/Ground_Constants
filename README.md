@@ -1,8 +1,8 @@
 # Ground Constants Estimator
 
-Estimate the HF ground conductivity (σ) and dielectric constant (εr) at any spot in the US, and see what that ground means for your antennas.
+Estimate the HF ground conductivity (σ) and dielectric constant (εr) at any spot in the world, and see what that ground means for your antennas.
 
-Click the map and the page looks up the soil at that point in the USDA soil survey, works out σ and εr for the ground condition and band you pick, and gives you the numbers in the form MMANA-GAL expects. It also compares a vertical with dipoles at different heights over that ground, and takes nearby salt water into account.
+Click the map and the page looks up the soil at that point (in the USDA soil survey in the US, or in ISRIC's SoilGrids global data elsewhere), works out σ and εr for the ground condition and band you pick, and gives you the numbers in the form MMANA-GAL expects. It also compares a vertical with dipoles at different heights over that ground, and takes nearby salt water into account.
 
 **Use it online, nothing to install: [k5ohy.github.io/Ground_Constants](https://k5ohy.github.io/Ground_Constants/)**
 
@@ -37,7 +37,7 @@ The FCC M3 ground conductivity map was made from AM broadcast measurements, aver
 
 ### Map
 
-- **Click anywhere in the US** to look up the soil there. Search works with place names or coordinates.
+- **Click anywhere in the world** to look up the soil there. Search works with place names or coordinates.
 - **Use my location** centers the map on your current browser location and looks up the soil there. Use the panel button or the target icon beneath the map's +/− zoom buttons. Location access is requested only when you click either control.
 - **Map styles:** Light, Dark, Satellite, Street, Topographic, USGS Topo and Shaded relief. No API keys are needed.
 - **Soil boundaries** overlay (zoom in close) shows the USDA soil map units.
@@ -48,6 +48,7 @@ The FCC M3 ground conductivity map was made from AM broadcast measurements, aver
 - **σ in mS/m and εr**, with a ground class (Very poor to Very good / saline) and the estimated skin depth on the chosen band.
 - **MMANA-GAL line** with a Copy button.
 - **Data line** showing where the numbers came from: how much of the map unit has lab data, which soil properties were filled with defaults, and whether nearby spots supplied the data.
+- **Source:** the data line names where the numbers came from: the USDA survey, nearby USDA soils, or SoilGrids global data.
 - **Water:** map units of water are treated as fresh or salt depending on the coastline, and you can switch between them.
 
 ### Ground condition and band
@@ -58,13 +59,13 @@ The FCC M3 ground conductivity map was made from AM broadcast measurements, aver
 
 ### What this means for HF antennas
 
-- **Verdict** naming the antenna, for example "35 ft dipole favored broadside" or "Vertical ≈ 30 ft dipole".
-- **Flat-ground comparison** in dBi at 5°, 10° and 20° for a ground-mounted ¼λ vertical, a dipole at ¼λ, a dipole at ½λ, and your own dipole height if you enter one.
+- **Verdict** naming the antenna, with a line saying whether it holds from bone dry to saturated ground, for example "35 ft dipole favored broadside" or "Vertical ≈ 30 ft dipole".
+- **Illustrative flat-ground comparison** in dBi at 5°, 10° and 20° for a ground-mounted ¼λ vertical, a dipole at ¼λ, a dipole at ½λ, and your own dipole height if you enter one.
 - **Notes** on verticals (pseudo-Brewster angle, radials), horizontals (height), low dipoles and NVIS on 40m and below, moisture, skin depth and salt water.
 
 ### Salt water
 
-The page carries its own copy of the US coastline. After each lookup it finds the nearest salt water and estimates how much of the ground where the signal reflects lies over the sea, for each antenna and angle. When the sea makes a difference, buttons let you compare **toward salt water** with **inland**. This is where a seaside vertical gets its advantage.
+The page uses the OpenStreetMap coastline for the whole world, loaded in tiles for the area around the spot you click (a US-only copy is built in for when the page is opened as a file). After each lookup it finds the nearest salt water and estimates how much of the ground where the signal reflects lies over the sea, for each antenna and angle. When the sea makes a difference, buttons let you compare **toward salt water** with **inland**. This is where a seaside vertical gets its advantage.
 
 ### Your own values
 
@@ -77,13 +78,14 @@ Pick a soil texture and salinity (or fresh or salt water) to see typical values,
 
 ## How the estimate works
 
-1. **Soil data.** The clicked point is sent to USDA NRCS Soil Data Access (SSURGO). It returns the soil map unit, its component soils and their share, and each soil's layers down to about 2 m: sand and clay, bulk density, water held at field capacity and wilting point, salinity (EC) and cation exchange capacity (CEC).
-2. **Moisture.** Each ground condition sets the water content of every layer, from 40% of the wilting point (Bone dry) to 90% of the pore space (Saturated).
-3. **Dielectric constant.** CRIM mixing of mineral grains, water and air.
-4. **Conductivity.** An Archie-type model: pore-water conductivity from the salinity, a porosity and water-content factor, plus a surface-conduction term from clay.
-5. **Depth weighting.** Layers are weighted by how much of the radio field reaches them on the chosen band. Rock layers (only where the survey says bedrock or cemented) are treated as limestone or caliche; organic layers (muck, peat) get organic-soil values.
-6. **Missing data.** Where there is no soil data (urban land, pits, unsurveyed areas), the page averages the nearest real soil data, searching outward up to about 37 miles and weighting the closest most.
-7. **Antenna comparison.** Each antenna's free-space pattern combined with the reflection off flat ground with these constants, with salt water blended in where it lies in the reflection zone.
+1. **Choosing a source.** In the US the page asks the USDA soil survey first. Outside the US, where USDA has no data, or when the USDA service is down, it uses [SoilGrids](https://soilgrids.org) from ISRIC, a worldwide soil grid of about 250 m. Open sea is recognized from the coastline.
+2. **USDA soil data.** The clicked point is sent to USDA NRCS Soil Data Access (SSURGO). It returns the soil map unit, its component soils and their share, and each soil's layers down to about 2 m: sand and clay, bulk density, water held at field capacity and wilting point, salinity (EC) and cation exchange capacity (CEC).
+3. **Moisture.** Each ground condition sets the water content of every layer, from 40% of the wilting point (Bone dry) to 90% of the pore space (Saturated).
+4. **Dielectric constant.** CRIM mixing of mineral grains, water and air.
+5. **Conductivity.** An Archie-type model: pore-water conductivity from the salinity, a porosity and water-content factor, plus a surface-conduction term from clay.
+6. **Depth weighting.** Layers are weighted by how much of the radio field reaches them on the chosen band. Rock layers (only where the survey says bedrock or cemented) are treated as limestone or caliche; organic layers (muck, peat) get organic-soil values.
+7. **Missing data.** Where there is no soil data (urban land, pits, unsurveyed areas), the page averages the nearest real soil data, searching outward up to about 37 miles and weighting the closest most.
+8. **Antenna comparison.** Each antenna's free-space pattern combined with the reflection off flat ground with these constants, with salt water blended in where it lies in the reflection zone. Dipole gains are corrected for how radiation resistance changes with height (image theory). The verdict is recomputed for all five ground conditions to show whether it depends on moisture.
 
 The full details are in **How the estimate works** at the bottom of the page.
 
@@ -91,18 +93,22 @@ The full details are in **How the estimate works** at the bottom of the page.
 
 - **Not validated.** The estimates have not been checked against HF ground measurements. Treat them as a starting point. For real numbers, measure your site with a VNA ground probe (see [N6LF's work](https://www.antennasbyn6lf.com)) and use **Use my own ground values**.
 - **No frequency dependence in the soil model.** Each layer's σ and εr are the same on every band; only the depth weighting and reflection change. Real soils vary somewhat with frequency.
-- **Flat ground.** The antenna comparison ignores hills, slopes, buildings and trees.
+- **The antenna comparison is illustrative.** It combines ideal patterns with ground reflection; it does not compute antenna currents, feedpoint impedance, radial losses or terrain. Use it to pick ground values to try, then model your antenna in MMANA-GAL or NEC.
+- **Deep ground is assumed.** Soil data stops at about 2 m; below that the deepest layer is assumed to continue. On dry ground and low bands most of the estimate can come from that assumption, and the page warns when it does.
+- **Conductivity from salinity is modeled.** USDA's EC is measured on a saturated soil-paste extract; turning it into bulk HF conductivity uses an uncalibrated model, and the clay surface-conduction term can dominate on non-saline ground.
 - **Radials.** The vertical assumes a good radial system; loss in the ground near the antenna is not included.
-- **Salt water model** is simplified, and the coastline covers ocean and bays only (not the Great Lakes or inland salt lakes).
+- **Global data is coarser.** SoilGrids is predicted by computer on a grid of about 250 m rather than mapped in the field, and it has no salinity data, so it assumes non-saline soil. Near the sea or on salty desert ground, use **Manual soil type** with a salinity setting to see the difference. A global lookup reads 36 map layers from ISRIC's map server and takes a few seconds. In towns, where SoilGrids has no value, the soil around the spot is averaged.
+- **Salt water model** is simplified, and the coastline covers oceans and bays only (not lakes, including the Great Lakes and inland salt lakes). Near the 180° meridian (Fiji, western Aleutians) coastline across the line is not used. Opened as a file rather than from the website, only the US coastline is available.
 - **Soil survey data** is mapped at field scale and describes typical soil, not your exact spot. Fill, caliche layers or a damp low spot can differ.
 
 ## Troubleshooting
 
-- **"Could not reach the USDA soil service".** The USDA server is occasionally slow or down. Try again in a few minutes, or use **Manual soil type**.
+- **"The USDA soil service didn't answer".** The USDA server is occasionally slow or down for updates. The page switches to SoilGrids global data in the meantime; try again later for the detailed USDA data.
+- **A global lookup is slow.** It loads 36 small map layers from ISRIC; the status line counts them. Spots you have already looked up are remembered and load instantly.
 - **Soil boundaries don't show.** Zoom in close (street level). If the panel says the USDA map server isn't responding, the overlay is unavailable for now; lookups still work.
 - **A spot shows "Low coverage".** Most of that map unit has no soil data (often urban land). Try a spot nearby, or treat the result as rough.
 - **Place search finds nothing.** Try a town or park name, or enter coordinates as `lat, lon`.
-- **Current location is unavailable.** Allow location access in your browser and device settings, then try again. You can always click the map or search instead. Soil survey coverage is limited to the US.
+- **Current location is unavailable.** Allow location access in your browser and device settings, then try again. You can always click the map or search instead. Outside the US the page uses SoilGrids global data.
 
 ## Run it locally
 
@@ -114,13 +120,15 @@ Current location requires a secure browser context. If it is unavailable when op
 
 | File | What it is |
 |---|---|
-| `index.html` | The whole app: page, code and the embedded US coastline data |
-| `build_coastline.py` | Rebuilds the embedded coastline data from the OpenStreetMap source |
+| `index.html` | The whole app: page, code and the built-in US coastline |
+| `coast/` | Worldwide coastline in 30° tiles, loaded as needed |
+| `build_coastline.py` | Rebuilds the built-in US coastline and the `coast/` tiles from the OpenStreetMap source |
 | `LICENSE` | MIT license for the code, plus the terms for the data |
 
 ## Data sources and thanks
 
-- [USDA NRCS Soil Data Access](https://sdmdataaccess.nrcs.usda.gov/) (SSURGO): soil data and soil map overlay
+- [USDA NRCS Soil Data Access](https://sdmdataaccess.nrcs.usda.gov/) (SSURGO): US soil data and soil map overlay
+- [SoilGrids](https://soilgrids.org) © ISRIC – World Soil Information, CC BY 4.0: global soil data
 - Coastline: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL), via [geo-maps](https://github.com/simonepri/geo-maps)
 - Map tiles: Esri, USGS The National Map
 - Place search: Esri World Geocoder, with OpenStreetMap Nominatim as a fallback
